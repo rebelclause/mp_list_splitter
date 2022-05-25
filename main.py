@@ -15,7 +15,8 @@ async def consumer(Q: asyncio.Queue):
     await asyncio.sleep(0)
     
     deliverable:list = []
-
+    
+    # TODO: double global reference (here, and below, in q_handler()) may be related to mypy being used during debugging
     global count
     count = 0
 
