@@ -41,10 +41,11 @@ async def main():
 # prototype is an ohlc init of symbols and the creation of symbol tables and associated base stack tables and indicator backtesting data
 
     iter_args = [
-        [api_call_one, 'FEB/DBC', payload, command],
-        [api_call_two, 'FEB/DBC', payload, command],
-        [api_call_three, 'FEB/DBC', payload, command],
-        [api_call_one, 'FEB/DBC', payload, command]]
+        [api_call_one, 'FE0/DBC', payload, command],
+        [api_call_two, 'FE1/DBC', payload, command],
+        [api_call_three, 'FE2/DBC', payload, command],
+        [api_call_one, 'FE3/DBC', payload, command]
+    ]
 
     iter_partial_args = []
     iter_extracted = []
@@ -56,7 +57,7 @@ async def main():
     NUM_PROCESSES = len(iter_args)
     with EXECUTOR(NUM_PROCESSES) as executor:
         for idx, _ in enumerate(iter_partial_args):
-        print(f"Batch {idx + 1} of {len(iter_partial_args)} consisting of: {_}")
+            print(f"Batch {idx + 1} of {len(iter_partial_args)} consisting of: {_}")
             for task_result in executor.map(_, iter_extracted):
                 task_results.append(task_result)
             print("Cumulative and final: ", task_results)

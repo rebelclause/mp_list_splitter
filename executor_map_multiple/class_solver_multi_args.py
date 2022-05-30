@@ -1,74 +1,164 @@
 import asyncio
+from asyncio.queues import QueueFull, QueueEmpty
 import concurrent.futures # ThreadPoolExecutor, ProcessPoolExecutor
 import functools # partial
-from quadratic_solver import Solver
+from quadratic_solver import Solver # typing the Queue item
+from quadratic_solver import solver # obtaining the solver instance; Solver uses the special dunder method__call__(), so when arguments are received the calculation is run and result immediately returned
+import numpy as np
+import pickle
+import math
+from itertools import count
+from dataclasses import dataclass, field
+from typing import Any
 
 
-EXECUTOR = concurrent.futures.ThreadPoolExecutor
-NUM_PROCESSES = None
+# EXECUTOR = concurrent.futures.ThreadPoolExecutor
+EXECUTOR = concurrent.futures.ProcessPoolExecutor
+QUEUE_SIZE = 3
+NUM_PROCESSES = 3
+DELAY = 0.3
+RUNCOUNT = count(1)
 
 
-def api_call_one(*args, **kwargs):
-    print(args)
-    print(kwargs)
+# TODO: nake a show out of 
+# If the data elements are not comparable, the data can be wrapped in a class that ignores the data item and only compares the priority number:
+@dataclass(order=True)
+class PrioritizedItem:
+    priority: int
+    item: Any=field(compare=False)
 
-def api_call_two(*args, **kwargs):
-    print(args)
-    print(kwargs)
 
-def api_call_three(*args, **kwargs):
-    print(args)
-    print(kwargs)
+async def print_queue(Q: asyncio.Queue):
+    print("print queue")
+    await asyncio.sleep(0)
 
-def hello(a, b):
-    return f"{a.upper()} {b.upper()}"
+    try:
+        print(f"Outer Try 3: {Q.qsize()}")
+        while True:
+            print(f"Outer While 2: {Q.qsize()}")
+            try:
+                print(f"Try 2: {Q.qsize()}")
+                while True:
+                    # print(f"While 1: {Q.qsize()}")
+                    # if Q.qsize() == Q.maxsize - 1:
+                    #     await Q.join()
+                    try:
+                        # print(f"Try 1: {Q.qsize()}")
+                        # item = await Q.get(block=False, timeout=30)
+                        item:Solver = await Q.get()
+                        # item = Q.get_nowait()
+                        print(f"{next(RUNCOUNT)} - {item}")
+                        if item != None:
+                            ## the producer emits None to indicate that it is done
+                            Q.task_done()
+                            await asyncio.sleep(DELAY)
+                        else:
+                            # print(f"End: {Q.qsize()}")
+                            print("Calculations ended...")
+                            break
+                    except Exception as e:
+                        print(e)
+                        continue
+            except QueueFull as e:
+                print(e)
+                # Q.join()
+                continue
+            except Exception as e:
+                print(e)
 
-async def main():
+    except KeyboardInterrupt as e:
+        exit()
+    except Exception as e:
+        print(e)
+    finally:
+        if Q.qsize() == Q.maxsize:
+            print(f"Finally If True: {Q.qsize()}")
+        else:
+            print(f"Finally Else: {Q.qsize()}")
+            print(f"{Q.maxsize=}")
+            print('QQQQQQQQQ')
+
+
+def solve(input):
+    print(input)
+    solver = Solver()
+    result = solver(input)
+    return result
+
+def solve2(input):
+    # print(input)
+    a, b, c = input
+    d = b ** 2 - 4 * a * c
+    if d > 0:
+        disc = math.sqrt(d)
+        root1 = (-b + disc) / (2 * a)
+        root2 = (-b - disc) / (2 * a)
+        return root1, root2
+    elif d == 0:
+        return -b / (2 * a)
+    else:
+        return "This equation has no roots"
+
+def solve3(input):
+    # print(input)
+    return input
+
+async def quadratic(Q: asyncio.Queue):
     """Example usage of functools.partial to call different functions with multiple arguments through a single point of intersect with a multiprocessing executor of the concurrent.futures standard library module."""
+    print("quadratic")
+    await asyncio.sleep(0)
 
-    payload = {}
-    payload = {
-        "somekey": "somestring",
-        "option1": "option1string",
-        "option2": "option2string"
-    }
+    # inputs = np.random.rand(200,3)*100
+    # # print(inputs)
 
-    command = 'get_request_one'
+    inputs = np.random.randint(1000000,size=(20,3))
+    # for input in inputs:
+    #     print(type(input))
+    #     print(tuple(input))
+    #     print(list(input))
 
-# prototype is an indicator stack, each with its own callable, but the symbol aggregation is simply for convenience of the example
+    # # not needed, no immediately apparent issues with np.array
+    # inputs = [tuple(x) for x in inputs]
+    # print(inputs)
 
-# prototype is an ohlc update of symbols
-
-# prototype is an ohlc init of symbols and the creation of symbol tables and associated base stack tables and indicator backtesting data
-
-    iter_args = [
-        [api_call_one, 'FEB/DBC', payload, command],
-        [api_call_two, 'FEB/DBC', payload, command],
-        [api_call_three, 'FEB/DBC', payload, command],
-        [api_call_one, 'FEB/DBC', payload, command]]
-
-    iter_partial_args = []
-    iter_extracted = []
-    for arg in iter_args:
-        iter_partial_args.append(functools.partial(arg[0], arg[2], arg[3]))
-        iter_extracted.append(arg[1])
+    # iter = [(4, 88, 342), (4, 88, 342), (4, 88, 342)]
+    # lambda x: task(X*), iter
 
     task_results = []
-    NUM_PROCESSES = len(iter_args)
-    with EXECUTOR(NUM_PROCESSES) as executor:
-        for idx, _ in enumerate(iter_partial_args):
-            print(f"Batch {idx + 1} of {len(iter_partial_args)} consisting of: {_}")
-            for task_result in executor.map(_, iter_extracted):
-                task_results.append(task_result)
-            print("Cumulative and final: ", task_results)
 
+    # from functools import partial
+    # s = partial(solver, Q)
+    # solver_map = map(lambda i: solve2(*i), inputs)
+    # s_solver = pickle.dumps(solver_map)
+    # print(s_solver)
+
+    with EXECUTOR(NUM_PROCESSES) as executor:
+        for task_result in executor.map(solver, inputs):
+        # for task_result in executor.map(s, inputs): # no, the class outfitted with a passed Queue will not pickle... at least not the way it was done, using the partial
+            await Q.put(task_result)
+        # The Q might be full when given a maxsize, which one iteration of this mishmash does 
+            # Q.put_nowait(task_result)
+        # for task_result in executor.map(lambda i: solver(*i), inputs):
+        # for task_result in executor.map(solve2, inputs):
+        # for task_result in executor.map(solve3, inputs):
+            # print(task_result)
+            # task_results.append(task_result)
+    # print("Cumulative and final: ", task_results)
+    # print("Calculations ended...producer's end")
+    # await Q.join()
+    # return 'multiprocessing complete'
+
+async def main():
+    Q = asyncio.Queue(QUEUE_SIZE)
+    tasks = await asyncio.gather(*[quadratic(Q), print_queue(Q)])
+    print(tasks)
 
 if __name__ == "__main__":
-    task = Solver()
-    print(task(8.8, 9.9, 11.9889))
-    print(task(3.0, 6.0, 257.0))
-    print(task(4, 88, 342))
-    iter = [(4, 88, 342), (4, 88, 342), (4, 88, 342)]
-    lambda x: task(X*), iter
-    # asyncio.run(main())
+    # task = Solver()
+    # print(task(8.8, 9.9, 11.9889))
+    # print(task(3.0, 6.0, 257.0))
+    # print(task(4, 88, 342))
+
+
+    asyncio.run(main())
 
