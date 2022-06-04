@@ -54,9 +54,9 @@ No warranty, mechantability, or libability on this one. Not guaranteed to work, 
 
 Frequent users of any favored IDE will know the pain of debugging Python's asynchronous code and all the fun (and not) that can be had with stack traces. 
 
-FWIW, the 'premium' example ran for several days without an error, but as it is a 'closed loop' in the sense that it's data and flow are contained and the shape well known. Consequently the data used serializes well and therefore didn't cause any major hair-pulling problems. 
+FWIW, the 'premium' example ran for several days without an error, but as it is a 'closed loop' in the sense that its data and flow are contained and its shape well known. Consequently the data used serializes well and therefore didn't cause any major hair-pulling problems. 
 
-This is an important fact that might best have been put in the introduction which might have been aptly titled: Your Python Queue Loves A Pickle, But You Don't Want To Be In One If You Don't Take That In And Make Your Data Coding Behave Accordingly.
+This is an important fact that might best have been put in the introduction and aptly titled: Your Python Queue Loves A Pickle, But You Don't Want To Be In One If You Don't Take That In And Make Your Data Coding Behave Accordingly.
 
 
 
